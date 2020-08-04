@@ -9,6 +9,7 @@ import ackcord.data.VoiceGuildChannel
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
+import java.util.UUID
 import scala.concurrent.ExecutionContext
 import scala.util.Failure
 import scala.util.Success
@@ -28,7 +29,7 @@ object GameManager {
           ctx.pipeToSelf(Game(ctx.self, client, tc, vc)) {
             case Success(d -> behavior) =>
               ctx.log.info("SPAWNED GAME")
-              val ref = ctx.spawn(behavior, tc.id.asString)
+              val ref = ctx.spawn(behavior, UUID.randomUUID.toString)
               ctx.scheduleOnce(d, ref, Game.NewSong)
               GameCreated(cg, ref)
             case Failure(exception) => sys.error(exception.toString)
