@@ -18,7 +18,7 @@ case class Song(
   url: String,
   albumCoverUrl: String,
 ) {
-  def songOptions = title :: title.split('/').toList ++ title.split('(').toList.filterNot(t => t.contains("feat") || t.contains("with"))
+  def songOptions = title :: title.split('/').toList ++ title.split('(').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++ title.split(" - ").toList
 
   def isArtist(value: String): Boolean = artists.exists(_.isMatch(value))
   def isTitle(value: String): Boolean = songOptions.exists(Quiz.isCorrect(_, value))
@@ -28,7 +28,7 @@ object Quiz {
   implicit val artistFormat: JsonFormat[Artist] = jsonFormat2(Artist.apply)
   implicit val songFormat: JsonFormat[Song] = jsonFormat5(Song.apply)
 
-  val songs: List[Song] = Source.fromResource("songs.json").getLines.mkString("\n").parseJson.convertTo[List[Song]]
+  lazy val songs: List[Song] = Source.fromResource("songs.json").getLines.mkString("\n").parseJson.convertTo[List[Song]]
 
   def random(n: Int): List[Song] = Random.shuffle(songs).take(n)
 
