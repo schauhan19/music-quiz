@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
+import akka.actor.typed.ActorRef
 
 object Game {
   sealed trait Command
@@ -55,6 +56,7 @@ object Game {
       )
   }
 
+  private[this] val gameLength = 15
   private[this] val medals = Map(0 -> "🥇", 1 -> "🥈", 2 -> "🥉")
   case class Score(value: Map[UserId, Int]) {
     def formattedScore: String = value.toList.sortBy(-_._2).zipWithIndex.map {
@@ -70,7 +72,7 @@ object Game {
         description = Some(
           s"__**LEADERBOARD**__\n\n$formattedScore"
         ),
-        footer = Some(OutgoingEmbedFooter(s"Music Quiz - track $songNum/15"))
+        footer = Some(OutgoingEmbedFooter(s"Music Quiz - track $songNum/$gameLength"))
       )
     def endGameEmbed: OutgoingEmbed =
       OutgoingEmbed(
@@ -82,7 +84,7 @@ object Game {
   val startEmbed = OutgoingEmbed(
     title = Some("🎶 **The Music Quiz will start shortly!**"),
     description = Some(
-      """ | This game will have 15 song previews, 30 seconds per song.
+      s""" | This game will have $gameLength song previews, 30 seconds per song.
           |
           | You'll have to guess the artist name and the song name.
           |
@@ -98,9 +100,14 @@ object Game {
   val playerManager: AudioPlayerManager = new DefaultAudioPlayerManager
   AudioSourceManagers.registerRemoteSources(playerManager)
 
-  def apply(client: DiscordClient, textChannel: TextGuildChannel, voiceChannel: VoiceGuildChannel)(implicit ec: ExecutionContext): Future[(FiniteDuration, Behavior[Command])] = {
+  def apply(
+    parent: ActorRef[GameManager.Command],
+    client: DiscordClient,
+    textChannel: TextGuildChannel,
+    voiceChannel: VoiceGuildChannel,
+  )(implicit ec: ExecutionContext): Future[(FiniteDuration, Behavior[Command])] = {
 
-    val quiz = Quiz.random(15)
+    val quiz = Quiz.random(gameLength)
 
     case class QuestionState(number: Int, titleCorrect: Option[UserId], artistCorrect: Option[UserId]) {
       lazy val song: Song = quiz(number)
@@ -110,18 +117,18 @@ object Game {
     def behavior(player: AudioPlayer, quizTracks: List[AudioTrack], score: Score, state: QuestionState): Behavior[Command] =
       Behaviors.receive {
         case (ctx, NewSong) =>
-          state.previous match {
-            case None => ()
+          val songMessage = state.previous match {
+            case None => Future.unit
             case Some(previous) =>
               val embed = textChannel.sendMessage(embed = Some(score.songEmbed(previous, state.number)))
-              client.requests.singleFuture(embed)
+              client.requests.singleFuture(embed).map(_ => ())
           }
           if (state.number < quizTracks.size) {
             val track = quizTracks(state.number)
             player.startTrack(track, false)
             ctx.scheduleOnce(FiniteDuration(track.getDuration(), TimeUnit.MILLISECONDS), ctx.self, Timeout(state.number))
           } else {
-            ctx.self ! EndGame
+            ctx.pipeToSelf(songMessage)(_ => EndGame)
           }
           Behaviors.same
         case (ctx, InGame(mc)) =>
@@ -160,6 +167,9 @@ object Game {
         case (ctx, EndGame) =>
           val embed = textChannel.sendMessage(embed = Some(score.endGameEmbed))
           client.requests.singleFuture(embed)
+          parent ! GameManager.EndGame(textChannel)
+          player.stopTrack()
+          client.leaveChannel(voiceChannel.guildId, destroyPlayer = true)
           Behaviors.stopped
       }
 

@@ -25,7 +25,7 @@ object GameManager {
       Behaviors.receive[Command] {
         case (ctx, cg@CreateGame(tc, vc)) =>
           ctx.log.info("Received start message")
-          ctx.pipeToSelf(Game(client, tc, vc)) {
+          ctx.pipeToSelf(Game(ctx.self, client, tc, vc)) {
             case Success(d -> behavior) =>
               ctx.log.info("SPAWNED GAME")
               val ref = ctx.spawn(behavior, tc.id.asString)
@@ -49,8 +49,6 @@ object GameManager {
           }
           Behaviors.same
         case (ctx, EndGame(tc)) =>
-          // End game message
-          // games.get(mc.message.channelId).foreach(_ ! mc)
           behavior(games - tc.id)
       }
     behavior(Map.empty)
