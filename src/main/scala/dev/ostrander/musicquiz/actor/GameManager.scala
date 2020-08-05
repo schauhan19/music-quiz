@@ -9,45 +9,43 @@ import ackcord.data.VoiceGuildChannel
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import java.util.UUID
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
 
 object GameManager {
   sealed trait Command
   case class CreateGame(textChannel: TextGuildChannel, voiceChannel: VoiceGuildChannel) extends Command
+  case class CreateGameWithBehavior(cg: CreateGame, duration: FiniteDuration, behavior: Behavior[Game.Command])
+      extends Command
   case class GameCreated(createGame: CreateGame, ref: ActorRef[Game.Command]) extends Command
   case class Message(mc: MessageCreate) extends Command
   case class EndGame(textChannel: TextGuildChannel) extends Command
 
   def apply(client: DiscordClient)(implicit ec: ExecutionContext): Behavior[Command] = {
-    def behavior(games: Map[TextChannelId, ActorRef[Game.Command]]): Behavior[Command] = 
+    def behavior(games: Map[TextChannelId, ActorRef[Game.Command]]): Behavior[Command] =
       Behaviors.receive[Command] {
-        case (ctx, cg@CreateGame(tc, vc)) =>
-          ctx.log.info("Received start message")
-          ctx.pipeToSelf(Game(ctx.self, client, tc, vc)) {
-            case Success(d -> behavior) =>
-              ctx.log.info("SPAWNED GAME")
-              val ref = ctx.spawn(behavior, UUID.randomUUID.toString)
-              ctx.scheduleOnce(d, ref, Game.NewSong)
-              GameCreated(cg, ref)
+        case (ctx, cg @ CreateGame(tc, vc)) =>
+          ctx.pipeToSelf(Game(client, tc, vc)) {
+            case Success(d -> behavior) => CreateGameWithBehavior(cg, d, behavior)
             case Failure(exception) => sys.error(exception.toString)
           }
           Behaviors.same
+        case (ctx, CreateGameWithBehavior(cg, duration, behavior)) =>
+          val ref = ctx.spawnAnonymous(behavior)
+          ctx.watchWith(ref, EndGame(cg.textChannel))
+          ctx.scheduleOnce(duration, ref, Game.NewSong)
+          ctx.self ! GameCreated(cg, ref)
+          Behaviors.same
         case (ctx, GameCreated(cg, ref)) =>
           cg.textChannel match {
-            case tc: TextChannel =>
-              ctx.log.info(s"Game created in ${tc.id}")
-              behavior(games + (tc.id -> ref))
+            case tc: TextChannel => behavior(games + (tc.id -> ref))
             case _ => Behaviors.same
           }
         case (ctx, Message(mc)) =>
-          if (!mc.message.authorUser(mc.cache.current).exists(_.bot.exists(identity))) {
-            ctx.log.info(s"Message received in ${mc.message.channelId}")
-            ctx.log.info(s"Current games: $games")
+          if (!mc.message.authorUser(mc.cache.current).exists(_.bot.exists(identity)))
             games.get(mc.message.channelId).foreach(_ ! Game.InGame(mc))
-          }
           Behaviors.same
         case (ctx, EndGame(tc)) =>
           behavior(games - tc.id)
