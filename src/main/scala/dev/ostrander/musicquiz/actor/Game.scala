@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import akka.actor.typed.ActorRef
 
 object Game {
   sealed trait Command
@@ -101,7 +100,6 @@ object Game {
   AudioSourceManagers.registerRemoteSources(playerManager)
 
   def apply(
-    parent: ActorRef[GameManager.Command],
     client: DiscordClient,
     textChannel: TextGuildChannel,
     voiceChannel: VoiceGuildChannel,
@@ -167,8 +165,6 @@ object Game {
         case (ctx, EndGame) =>
           val embed = textChannel.sendMessage(embed = Some(score.endGameEmbed))
           client.requests.singleFuture(embed)
-          parent ! GameManager.EndGame(textChannel)
-          player.stopTrack()
           client.leaveChannel(voiceChannel.guildId, destroyPlayer = true)
           Behaviors.stopped
       }

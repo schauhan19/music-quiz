@@ -20,9 +20,7 @@ object MusicQuiz extends App {
     client.onEventSideEffects { cache =>
       {
         case APIMessage.Ready(_) => clientSettings.system.log.info("Now ready")
-        case mc: APIMessage.MessageCreate =>
-          clientSettings.system.log.info(s"received message: ${mc.message.content}")
-          game ! GameManager.Message(mc)
+        case mc: APIMessage.MessageCreate => game ! GameManager.Message(mc)
       }
     }
 

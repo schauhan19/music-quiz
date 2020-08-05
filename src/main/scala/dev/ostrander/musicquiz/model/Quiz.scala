@@ -1,14 +1,14 @@
 package dev.ostrander.musicquiz.model
 
+import org.apache.commons.text.similarity.JaccardSimilarity
 import scala.io.Source
 import scala.util.Random
 import spray.json.DefaultJsonProtocol._
 import spray.json.JsonFormat
 import spray.json.enrichString
-import org.apache.commons.text.similarity.JaccardSimilarity
 
 case class Artist(name: String, href: String) {
-  def isMatch(value: String): Boolean = (name :: name.split("&").toList).toList.exists(Quiz.isCorrect(_, value))
+  def isMatch(value: String): Boolean = (name :: name.split("&").toList ++ name.split("and").toList).toList.exists(Quiz.isCorrect(_, value))
 }
 
 case class Song(
@@ -18,7 +18,7 @@ case class Song(
   url: String,
   albumCoverUrl: String,
 ) {
-  def songOptions = title :: title.split('/').toList ++ title.split('(').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++ title.split(" - ").toList
+  def songOptions = title :: title.split('/').toList ++ title.split('(').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++ title.split('-').toList ++ title.split(')').toList ++ title.split('[').toList
 
   def isArtist(value: String): Boolean = artists.exists(_.isMatch(value))
   def isTitle(value: String): Boolean = songOptions.exists(Quiz.isCorrect(_, value))
