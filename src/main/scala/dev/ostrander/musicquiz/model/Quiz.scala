@@ -8,7 +8,8 @@ import spray.json.JsonFormat
 import spray.json.enrichString
 
 case class Artist(name: String, href: String) {
-  def isMatch(value: String): Boolean = (name :: name.split("&").toList ++ name.split("and").toList).toList.exists(Quiz.isCorrect(_, value))
+  def isMatch(value: String): Boolean =
+    (name :: name.split("&").toList ++ name.split("and").toList).toList.exists(Quiz.isCorrect(_, value))
 }
 
 case class Song(
@@ -18,7 +19,9 @@ case class Song(
   url: String,
   albumCoverUrl: String,
 ) {
-  def songOptions = title :: title.split('/').toList ++ title.split('(').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++ title.split('-').toList ++ title.split(')').toList ++ title.split('[').toList
+  def songOptions = title :: title.split('/').toList ++ title.split('(').toList.filterNot(t =>
+    t.contains("feat") || t.contains("with"),
+  ) ++ title.split('-').toList ++ title.split(')').toList ++ title.split('[').toList
 
   def isArtist(value: String): Boolean = artists.exists(_.isMatch(value))
   def isTitle(value: String): Boolean = songOptions.exists(Quiz.isCorrect(_, value))
@@ -34,5 +37,6 @@ object Quiz {
 
   private[this] val jaccard = new JaccardSimilarity()
   private[this] val threshold: Double = 0.69
-  def isCorrect(answer: String, guess: String): Boolean = jaccard(answer.toLowerCase(), guess.toLowerCase()) >= threshold
+  def isCorrect(answer: String, guess: String): Boolean =
+    jaccard(answer.toLowerCase(), guess.toLowerCase()) >= threshold
 }
