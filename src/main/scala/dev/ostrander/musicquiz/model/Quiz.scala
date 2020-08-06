@@ -20,7 +20,7 @@ case class Song(
   albumCoverUrl: String,
 ) {
   def songOptions = title :: title.split('/').toList ++ title.split('(').toList.filterNot(t =>
-    t.contains("feat") || t.contains("with"),
+    t.contains("feat") || t.contains("with") || t.contains("single version") || t.contains("radio edit"),
   ) ++ title.split('-').toList ++ title.split(')').toList ++ title.split('[').toList
 
   def isArtist(value: String): Boolean = artists.exists(_.isMatch(value))
@@ -36,7 +36,7 @@ object Quiz {
   def random(n: Int): List[Song] = Random.shuffle(songs).take(n)
 
   private[this] val jaccard = new JaccardSimilarity()
-  private[this] val threshold: Double = 0.69
+  private[this] val threshold: Double = 0.75
   def isCorrect(answer: String, guess: String): Boolean =
     jaccard(answer.toLowerCase(), guess.toLowerCase()) >= threshold
 }
