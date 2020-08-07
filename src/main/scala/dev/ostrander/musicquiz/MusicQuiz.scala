@@ -2,6 +2,7 @@ package dev.ostrander.musicquiz
 
 import ackcord.APIMessage
 import ackcord.ClientSettings
+import ackcord.syntax.MessageSyntax
 import ackcord.gateway.GatewayIntents
 import akka.actor.typed.ActorSystem
 import dev.ostrander.musicquiz.actor.GameManager
@@ -20,11 +21,16 @@ object MusicQuiz extends App {
     client.onEventSideEffects { cache =>
       {
         case APIMessage.Ready(_) => clientSettings.system.log.info("Now ready")
-        case mc: APIMessage.MessageCreate => game ! GameManager.Message(mc)
+        case mc: APIMessage.MessageCreate =>
+          if (mc.message.content.startsWith("Msg")) {
+            client.requests.singleIgnore(mc.message.createReaction("❌"))
+          }
+          game ! GameManager.Message(mc)
       }
     }
 
     client.commands.runNewNamedCommand(commands.game)
+    client.commands.runNewNamedCommand(commands.ratelimitTest("ratelimitTest"))
 
     client.login()
   }
