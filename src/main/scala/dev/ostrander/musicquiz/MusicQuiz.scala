@@ -10,7 +10,12 @@ object MusicQuiz extends App {
   require(args.nonEmpty, "Please provide a token")
   val token = args.head
 
-  val clientSettings = ClientSettings(token, intents = GatewayIntents.fromInt(36768832))
+  val intents = GatewayIntents(
+    GatewayIntents.GuildMessages,
+    GatewayIntents.GuildMessageReactions,
+    GatewayIntents.GuildVoiceStates,
+  )
+  val clientSettings = ClientSettings(token, intents = intents)
   import clientSettings.executionContext
 
   clientSettings.createClient().foreach { client =>
