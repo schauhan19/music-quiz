@@ -19,9 +19,15 @@ case class Song(
   url: String,
   albumCoverUrl: String,
 ) {
-  def songOptions = title :: title.split('/').toList ++ title.split('(').toList.filterNot(t =>
-    t.contains("feat") || t.contains("with"),
-  ) ++ title.split('-').toList ++ title.split(')').toList ++ title.split('[').toList
+  def songOptions = (
+    title ::
+      title.split('/').toList ++
+      title.split('(').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++
+      title.split('-').toList ++
+      title.split(')').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++
+      title.split('[').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++
+      title.split(']').toList.filterNot(t => t.contains("feat") || t.contains("with"))
+  ).filter(_.length > 1)
 
   def isArtist(value: String): Boolean = artists.exists(_.isMatch(value))
   def isTitle(value: String): Boolean = songOptions.exists(Quiz.isCorrect(_, value))
@@ -36,7 +42,7 @@ object Quiz {
   def random(n: Int): List[Song] = Random.shuffle(songs).take(n)
 
   private[this] val jaccard = new JaccardSimilarity()
-  private[this] val threshold: Double = 0.69
+  private[this] val threshold: Double = 0.75
   def isCorrect(answer: String, guess: String): Boolean =
     jaccard(answer.toLowerCase(), guess.toLowerCase()) >= threshold
 }

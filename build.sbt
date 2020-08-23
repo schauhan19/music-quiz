@@ -14,8 +14,8 @@ lazy val root = (project in file("."))
       "-Xlint:unused",
     ),
     scalacOptions in (Compile, console) ~= (_.filter(_ => false)),
-    libraryDependencies ++= List(   
-      "net.katsstuff" %% "ackcord" % "0.1-SNAPSHOT",
+    libraryDependencies ++= List(
+      "net.katsstuff" %% "ackcord" % "0.17.0",
       "io.spray" %%  "spray-json" % "1.3.5",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "org.apache.commons" % "commons-text" % "1.9",
