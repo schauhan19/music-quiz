@@ -15,7 +15,6 @@ object MusicQuiz extends App {
 
   clientSettings.createClient().foreach { client =>
     val game = clientSettings.system.systemActorOf(GameManager(client), "Games")
-    val commands = new Commands(client.requests, game)
 
     client.onEventSideEffects { cache =>
       {
@@ -24,7 +23,7 @@ object MusicQuiz extends App {
       }
     }
 
-    client.commands.runNewNamedCommand(commands.game)
+    client.commands.bulkRunNamed(Commands(client.requests, game): _*)
 
     client.login()
   }
