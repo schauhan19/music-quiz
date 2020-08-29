@@ -12,7 +12,7 @@ class Commands(
   gameActor: ActorRef[GameManager.Command],
 ) extends CommandController(requests) {
   val game: NamedCommand[RemainingAsString] =
-    GuildVoiceCommand.named("!", Seq("start"), mustMention = false).parsing[RemainingAsString].withSideEffects { r =>
+    GuildVoiceCommand.named(Seq("!"), Seq("start"), mustMention = false).parsing[RemainingAsString].withSideEffects { r =>
       gameActor ! GameManager.CreateGame(r.textChannel, r.voiceChannel)
     }
 }

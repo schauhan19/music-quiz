@@ -3,18 +3,18 @@ package dev.ostrander.musicquiz
 import ackcord.APIMessage
 import ackcord.ClientSettings
 import ackcord.gateway.GatewayIntents
-import akka.actor.typed.ActorSystem
 import dev.ostrander.musicquiz.actor.GameManager
 
 object MusicQuiz extends App {
   require(args.nonEmpty, "Please provide a token")
   val token = args.head
 
-  val clientSettings = ClientSettings(token, intents = GatewayIntents.fromInt(36768832))
+  val intents = GatewayIntents.All
+  val clientSettings = ClientSettings(token, intents = intents)
   import clientSettings.executionContext
 
   clientSettings.createClient().foreach { client =>
-    val game = ActorSystem(GameManager(client), "Games")
+    val game = clientSettings.system.systemActorOf(GameManager(client), "Games")
     val commands = new Commands(client.requests, game)
 
     client.onEventSideEffects { cache =>

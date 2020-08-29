@@ -9,7 +9,10 @@ import spray.json.enrichString
 
 case class Artist(name: String, href: String) {
   def isMatch(value: String): Boolean =
-    (name :: name.split("&").toList ++ name.split("and").toList).toList.exists(Quiz.isCorrect(_, value))
+    (name :: name.split("&").toList ++ name.split("and").toList)
+      .toList
+      .flatMap(name => name :: name.filter(_.isLetterOrDigit) :: Nil)
+      .exists(Quiz.isCorrect(_, value))
 }
 
 case class Song(
@@ -19,9 +22,17 @@ case class Song(
   url: String,
   albumCoverUrl: String,
 ) {
-  def songOptions = title :: title.split('/').toList ++ title.split('(').toList.filterNot(t =>
-    t.contains("feat") || t.contains("with"),
-  ) ++ title.split('-').toList ++ title.split(')').toList ++ title.split('[').toList
+  def songOptions = (
+    title ::
+      title.split('/').toList ++
+      title.split('(').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++
+      title.split('-').toList ++
+      title.split(')').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++
+      title.split('[').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++
+      title.split(']').toList.filterNot(t => t.contains("feat") || t.contains("with"))
+  )
+    .flatMap(t => t :: t.filter(_.isLetterOrDigit) :: Nil)
+    .filter(_.length > 1)
 
   def isArtist(value: String): Boolean = artists.exists(_.isMatch(value))
   def isTitle(value: String): Boolean = songOptions.exists(Quiz.isCorrect(_, value))
@@ -36,7 +47,7 @@ object Quiz {
   def random(n: Int): List[Song] = Random.shuffle(songs).take(n)
 
   private[this] val jaccard = new JaccardSimilarity()
-  private[this] val threshold: Double = 0.69
+  private[this] val threshold: Double = 0.8
   def isCorrect(answer: String, guess: String): Boolean =
     jaccard(answer.toLowerCase(), guess.toLowerCase()) >= threshold
 }
