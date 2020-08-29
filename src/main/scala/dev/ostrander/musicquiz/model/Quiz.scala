@@ -9,7 +9,10 @@ import spray.json.enrichString
 
 case class Artist(name: String, href: String) {
   def isMatch(value: String): Boolean =
-    (name :: name.split("&").toList ++ name.split("and").toList).toList.exists(Quiz.isCorrect(_, value))
+    (name :: name.split("&").toList ++ name.split("and").toList)
+      .toList
+      .flatMap(name => name :: name.filter(_.isLetterOrDigit) :: Nil)
+      .exists(Quiz.isCorrect(_, value))
 }
 
 case class Song(
@@ -27,7 +30,9 @@ case class Song(
       title.split(')').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++
       title.split('[').toList.filterNot(t => t.contains("feat") || t.contains("with")) ++
       title.split(']').toList.filterNot(t => t.contains("feat") || t.contains("with"))
-  ).filter(_.length > 1)
+  )
+    .flatMap(t => t :: t.filter(_.isLetterOrDigit) :: Nil)
+    .filter(_.length > 1)
 
   def isArtist(value: String): Boolean = artists.exists(_.isMatch(value))
   def isTitle(value: String): Boolean = songOptions.exists(Quiz.isCorrect(_, value))
