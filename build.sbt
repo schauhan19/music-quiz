@@ -20,5 +20,9 @@ lazy val root = (project in file("."))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "org.apache.commons" % "commons-text" % "1.9",
       scalaTest % Test,
-    )
+    ),
+    assemblyMergeStrategy in assembly := {
+      case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+      case x => MergeStrategy.first
+    },
   )
