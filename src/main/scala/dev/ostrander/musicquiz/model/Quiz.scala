@@ -47,7 +47,7 @@ object Quiz {
   def random(n: Int): List[Song] = Random.shuffle(songs).take(n)
 
   private[this] val jaccard = new JaccardSimilarity()
-  private[this] val threshold: Double = 0.8
+  private[this] val threshold: Double = 0.7
   def isCorrect(answer: String, guess: String): Boolean =
     jaccard(answer.toLowerCase(), guess.toLowerCase()) >= threshold
 }
